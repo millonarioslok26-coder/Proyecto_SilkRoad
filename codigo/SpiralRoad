@@ -1,0 +1,241 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import javax.swing.JOptionPane;
+
+/**
+ * Representa el camino en espiral sobre el cual se colocan robots y tiendas.
+ * Cada celda se almacena en orden de recorrido y puede contener objetos gráficos.
+ */
+public class SpiralRoad {
+    private static final int CELL_SIZE = 25;
+    private static final int MARGIN = 6;
+    private static final int ANCHO_CANVAS = 500;
+    private static final int ALTO_CANVAS = 500;
+    private ArrayList<Rectangle> rectangulos;
+    private ArrayList<Circle> circulos;
+    private HashMap<String, Celda> celdas;
+    private int length;
+    private ArrayList<int[]> celdasEnOrden;
+    private static SpiralRoad instance;
+
+    /**
+     * Construye un camino en espiral con un tamaño dado.
+     *
+     * @param length el tamaño base de la espiral
+     */
+    public SpiralRoad(int length) {
+        this.length = length;
+        rectangulos = new ArrayList<>();
+        circulos = new ArrayList<>();
+        celdas = new HashMap<>();
+        celdasEnOrden = new ArrayList<>();
+        instance = this;
+    }
+
+    /**
+     * Devuelve la instancia única de {@code SpiralRoad}.
+     *
+     * @return instancia actual de SpiralRoad
+     */
+    public static SpiralRoad getInstance() {
+        return instance;
+    }
+
+    /**
+     * Dibuja el camino en espiral y registra las celdas en orden.
+     */
+    public void dibujar() {
+        int x = 0, y = 0;
+        int dx = 1, dy = 0;
+    
+        int maxCols = ANCHO_CANVAS / CELL_SIZE;
+        int maxRows = ALTO_CANVAS / CELL_SIZE;
+    
+        HashSet<String> ocupadas = new HashSet<>();
+    
+        int prevX = -1, prevY = -1;
+    
+        for (int i = 0; i < length; i++) {
+            if (!validarLimiteCeldas()) return;
+    
+            registrarCelda(x, y, ocupadas);
+    
+            int nextX = x + dx;
+            int nextY = y + dy;
+    
+            boolean habraGiro = necesitaGiro(nextX, nextY, maxCols, maxRows, ocupadas);
+            boolean esBloqueSolido = (prevX != -1 && habraGiro);
+    
+            dibujarCelda(x, y, dx, dy, esBloqueSolido);
+    
+            prevX = x;
+            prevY = y;
+    
+            if (habraGiro) {
+                int[] newDir = cambiarDireccion(dx, dy);
+                dx = newDir[0];
+                dy = newDir[1];
+                nextX = x + dx;
+                nextY = y + dy;
+            }
+    
+            x = nextX;
+            y = nextY;
+        }
+    
+    }
+    
+    /** 
+     * Verifica si ya se alcanzó el máximo permitido de celdas. 
+    */
+    private boolean validarLimiteCeldas() {
+        if (celdasEnOrden.size() >= 400) {
+            JOptionPane.showMessageDialog(null,
+                "❌ Se superó el máximo de 400 celdas en la espiral.",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+    
+    /** 
+     * Registra la celda en la lista y en ocupadas. 
+    */
+    private void registrarCelda(int x, int y, HashSet<String> ocupadas) {
+        celdasEnOrden.add(new int[]{x, y});
+        ocupadas.add(x + "," + y);
+    }
+    
+    /** 
+     * Decide si hay que girar antes de avanzar.
+    */
+    private boolean necesitaGiro(int nextX, int nextY, int maxCols, int maxRows, HashSet<String> ocupadas) {
+        return (nextX < 0 || nextX >= maxCols ||
+                nextY < 0 || nextY >= maxRows ||
+                ocupadas.contains(nextX + "," + nextY));
+    }
+    
+    /** 
+     * Dibuja rectángulo y círculo (si aplica). 
+    */
+    private void dibujarCelda(int x, int y, int dx, int dy, boolean esBloqueSolido) {
+        Rectangle r = crearRectangulo(x, y, dx, dy, esBloqueSolido);
+        rectangulos.add(r);
+    
+        if (!esBloqueSolido) {
+            Circle c = crearCirculo(x, y);
+            circulos.add(c);
+    
+            String key = x + "," + y;
+            Celda celda = celdas.getOrDefault(key, new Celda(x, y));
+            celda.agregarObjeto(c);
+            celdas.put(key, celda);
+        }
+    }
+
+    /**
+     * Crea un rectángulo en la posición indicada del tablero.
+     * Ajusta su tamaño y posición si no corresponde a un punto de giro.
+     */
+    private Rectangle crearRectangulo(int x, int y, int dx, int dy, boolean esPuntoDeGiro) {
+        int rectX = x * CELL_SIZE;
+        int rectY = y * CELL_SIZE;
+
+        int rectWidth = CELL_SIZE;
+        int rectHeight = CELL_SIZE;
+
+        if (!esPuntoDeGiro) {
+            if (dx != 0) {
+                rectHeight = CELL_SIZE - MARGIN;
+                rectY += MARGIN / 2;
+            } else {
+                rectWidth = CELL_SIZE - MARGIN;
+                rectX += MARGIN / 2;
+            }
+        }
+
+        Rectangle r = new Rectangle();
+        r.changeSize(rectHeight, rectWidth);
+        r.makeVisible();
+
+        int deltaX = rectX - r.getX();
+        int deltaY = rectY - r.getY();
+        r.moveHorizontal(deltaX);
+        r.moveVertical(deltaY);
+
+        return r;
+    }
+
+    /**
+     * Cambia la dirección de movimiento rotando 90 grados en sentido horario.
+     */
+    private int[] cambiarDireccion(int dx, int dy) {
+        return new int[]{-dy, dx};
+    }
+
+    /**
+     * Crea un círculo en la posición indicada del tablero y lo hace visible.
+     */
+    private Circle crearCirculo(int x, int y) {
+        Circle c = new Circle(CELL_SIZE + 50);
+        c.changeColor("white");
+        c.moveHorizontal((x * CELL_SIZE) - 13);
+        c.moveVertical((y * CELL_SIZE) - 8);
+        c.makeVisible();
+        return c;
+    }
+
+    /**
+     * Hace visibles todos los objetos gráficos de la espiral.
+     */
+    public void makeVisible() {
+        for (Rectangle r : rectangulos) r.makeVisible();
+        for (Circle c : circulos) c.makeVisible();
+    }
+
+    /**
+     * Hace invisibles todos los objetos gráficos de la espiral.
+     */
+    public void makeInvisible() {
+        for (Rectangle r : rectangulos) r.makeInvisible();
+        for (Circle c : circulos) c.makeInvisible();
+    }
+
+    /**
+     * Devuelve los objetos gráficos contenidos en una celda.
+     *
+     * @param x coordenada X de la celda
+     * @param y coordenada Y de la celda
+     * @return lista de objetos en la celda
+     */
+    public ArrayList<Object> getObjetosEnCelda(int x, int y) {
+        Celda celda = celdas.get(x + "," + y);
+        return celda != null ? celda.getObjetos() : new ArrayList<>();
+    }
+
+    /**
+     * Obtiene la coordenada (x, y) de una celda por su ubicación (empezando en 1).
+     *
+     * @param location índice de la celda (1 = primera celda)
+     * @return arreglo con {x, y} o {@code null} si no existe
+     */
+    public int[] getCeldaPorUbicacion(int location) {
+        int index = location - 1;
+        if (index >= 0 && index < celdasEnOrden.size()) {
+            return celdasEnOrden.get(index);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Devuelve el número total de celdas en la espiral.
+     *
+     * @return número de celdas
+     */
+    public int getNumeroDeCeldas() {
+        return celdasEnOrden.size();
+    }
+}

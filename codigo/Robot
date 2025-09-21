@@ -1,0 +1,220 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import javax.swing.JOptionPane;
+
+public class Robot {
+    private int location;
+    private int initialLocation;
+    private boolean visible;
+    private int totalProfit;
+    private List<Integer> moveProfits;
+    private ProgressBar progressBar;
+    private List<Rectangle> rects = new ArrayList<>();
+    private List<Circle> circles = new ArrayList<>();
+    private List<Rectangle> tengesIndicators = new ArrayList<>();
+    private static final int CELL_SIZE = 25;
+    private static final List<String> COLORS = Arrays.asList("black", "red", "blue", "green", "yellow", "cyan", "gray");
+    private static int colorIndex = 0;
+
+    private String color;
+
+    /**
+     * Crea un robot en una ubicación específica del tablero.
+     *
+     * @param location la ubicación inicial del robot
+     */
+    public Robot(int location) {
+        this.location = location;
+        this.initialLocation = location;
+        this.visible = false;
+        this.totalProfit = 0;
+        this.moveProfits = new ArrayList<>();
+        this.progressBar = null;
+        this.color = COLORS.get(colorIndex % COLORS.size());
+        colorIndex++;
+        JOptionPane.showMessageDialog(null, "🤖 Robot creado en ubicación " + location);
+    }
+
+    public int getLocation() { 
+        return location; 
+    }
+    
+    public int getInitialLocation() { 
+        return initialLocation; 
+    }
+    
+    public int getTotalProfit() { 
+        return totalProfit; 
+    }
+    
+    public List<Integer> getMoveProfits() { 
+        return moveProfits; 
+    }
+
+    /**
+     * Getter de compatibilidad con ProgressBar.
+     * Devuelve la ganancia acumulada del robot.
+     */
+    public int getTenges() {
+        return totalProfit;
+    }
+
+    public void setProgressBar(ProgressBar progressBar) { 
+        this.progressBar = progressBar; 
+    }
+
+    /**
+     * Mueve el robot a una tienda, registrando la ganancia neta.
+     * @param targetLocation ubicación de la tienda
+     * @param storeValue valor de la tienda
+     */
+    public void moveToStore(int targetLocation, int storeValue) {
+        int distance = Math.abs(targetLocation - this.location);
+        int gain = storeValue - distance;
+
+        this.location = targetLocation;
+        this.totalProfit += gain;
+        this.moveProfits.add(gain);
+
+        if (visible) {
+            makeInvisible();
+            makeVisible();
+        }
+
+        if (progressBar != null) progressBar.update();
+
+        JOptionPane.showMessageDialog(null, "🤖 Robot en " + initialLocation +
+                " se movió a " + targetLocation + " con ganancia " + gain);
+    }
+
+    /**
+     * Devuelve el robot a su posición inicial sin alterar sus ganancias.
+     */
+    public void returnToStart() {
+        this.location = this.initialLocation;
+        if (visible) {
+            makeInvisible();
+            makeVisible();
+        }
+        JOptionPane.showMessageDialog(null, 
+            "↩ Robot en posición " + initialLocation + " volvió a su inicio.");
+    }
+
+    /**
+     * Reinicia estado al inicio de un día (posición y ganancias).
+     */
+    public void resetDay() {
+        this.location = initialLocation;
+        this.totalProfit = 0;
+        this.moveProfits.clear();
+        if (visible) {
+            makeInvisible();
+            makeVisible();
+        }
+        JOptionPane.showMessageDialog(null, "🔄 Robot en " + initialLocation + " reiniciado para nuevo día");
+    }
+
+    /**
+     * Hace parpadear al robot (para destacar al ganador del día).
+     */
+    public void blink(int times, int ms) {
+        for (int i = 0; i < times; i++) {
+            makeInvisible();
+            Canvas.getCanvas().wait(ms);
+            makeVisible();
+            Canvas.getCanvas().wait(ms);
+        }
+    }
+
+    // === Métodos gráficos ===
+
+    public void makeVisible() {
+        if (!visible) {
+            drawRobot();
+            visible = true;
+        }
+    }
+
+    public void makeInvisible() {
+        for (Rectangle rect : rects) rect.makeInvisible();
+        for (Circle circ : circles) circ.makeInvisible();
+        for (Rectangle indicator : tengesIndicators) indicator.makeInvisible();
+        rects.clear();
+        circles.clear();
+        tengesIndicators.clear();
+        visible = false;
+    }
+
+    private void drawRobot() {
+        SpiralRoad spiral = SpiralRoad.getInstance();
+        int[] coordenada = spiral.getCeldaPorUbicacion(location);
+
+        if (coordenada != null) {
+            int x = coordenada[0];
+            int y = coordenada[1];
+
+            int cabezaX = x * CELL_SIZE - 65;
+            int cabezaY = y * CELL_SIZE - 25 + 15;
+
+            Rectangle cabeza = new Rectangle();
+            cabeza.changeSize(15, 15);
+            cabeza.changeColor(color);
+            cabeza.moveHorizontal(cabezaX);
+            cabeza.moveVertical(cabezaY);
+            cabeza.makeVisible();
+            rects.add(cabeza);
+
+            int desplazamientoX = -6;
+            int desplazamientoY = 9;
+
+            Circle ojoIzq = new Circle();
+            ojoIzq.changeSize(3);
+            ojoIzq.changeColor("white");
+            ojoIzq.moveHorizontal(cabezaX + 75 - 9 + desplazamientoX);
+            ojoIzq.moveVertical(cabezaY + 36 - 43 + desplazamientoY);
+            ojoIzq.makeVisible();
+            circles.add(ojoIzq);
+
+            Circle ojoDer = new Circle();
+            ojoDer.changeSize(3);
+            ojoDer.changeColor("white");
+            ojoDer.moveHorizontal(cabezaX + 67 - 9 + desplazamientoX);
+            ojoDer.moveVertical(cabezaY + 36 - 43 + desplazamientoY);
+            ojoDer.makeVisible();
+            circles.add(ojoDer);
+
+            Rectangle boca = new Rectangle();
+            boca.changeSize(2, 9);
+            boca.changeColor("white");
+            boca.moveHorizontal(cabezaX + 18 - 9 + desplazamientoX);
+            boca.moveVertical(cabezaY + desplazamientoY);
+            boca.makeVisible();
+            rects.add(boca);
+
+            Rectangle orejaIzq = new Rectangle();
+            orejaIzq.changeSize(4, 2);
+            orejaIzq.changeColor(color);
+            orejaIzq.moveHorizontal(cabezaX + 13 - 9 + desplazamientoX);
+            orejaIzq.moveVertical(cabezaY + 17 - 25 + desplazamientoY);
+            orejaIzq.makeVisible();
+            rects.add(orejaIzq);
+
+            Rectangle orejaDer = new Rectangle();
+            orejaDer.changeSize(4, 2);
+            orejaDer.changeColor(color);
+            orejaDer.moveHorizontal(cabezaX + 30 - 9 + desplazamientoX);
+            orejaDer.moveVertical(cabezaY + 17 - 25 + desplazamientoY);
+            orejaDer.makeVisible();
+            rects.add(orejaDer);
+
+            Rectangle antena = new Rectangle();
+            antena.changeSize(3, 1);
+            antena.changeColor(color);
+            antena.moveHorizontal(cabezaX + 22 - 9 + desplazamientoX);
+            antena.moveVertical(cabezaY + 12 - 25 + desplazamientoY);
+            antena.makeVisible();
+            rects.add(antena);
+        }
+    }
+}

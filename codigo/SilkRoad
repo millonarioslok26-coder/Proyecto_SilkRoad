@@ -20,8 +20,8 @@ public class SilkRoad {
      */
     public SilkRoad(int length) {
         this.spiral = new SpiralRoad(length);
-        spiral.dibujar();
-        this.length = spiral.getNumeroDeCeldas();
+        spiral.draw();
+        this.length = spiral.getNumberOfCells();
         this.stores = new ArrayList<>();
         this.robots = new ArrayList<>();
         this.ok = true;
@@ -45,8 +45,8 @@ public class SilkRoad {
             maxLocation = Math.max(maxLocation, location);
         }
         this.spiral = new SpiralRoad(maxLocation + 5);
-        spiral.dibujar();
-        this.length = spiral.getNumeroDeCeldas();
+        spiral.draw();
+        this.length = spiral.getNumberOfCells();
         this.stores = new ArrayList<>();
         this.robots = new ArrayList<>();
         this.ok = true;
@@ -179,7 +179,7 @@ public class SilkRoad {
             bestR.moveToStore(bestS.getLocation(), bestS.getTenges());
             JOptionPane.showMessageDialog(null, "🤖 Robot movido a tienda en " + bestS.getLocation() +
                                                 " con ganancia " + bestGain);
-            bestS.vaciar();
+            bestS.empty();
             disponibles.remove(bestS);
         }
 
@@ -225,7 +225,7 @@ public class SilkRoad {
         if (targetStore != null) {
             int distance = Math.abs(newLocation - location);
             robotToMove.moveToStore(newLocation, targetStore.getTenges());
-            targetStore.vaciar();
+            targetStore.empty();
         } else {
             robotToMove.moveToStore(newLocation, 0);
         }

@@ -4,76 +4,76 @@ import java.util.HashSet;
 import javax.swing.JOptionPane;
 
 /**
- * Representa el camino en espiral sobre el cual se colocan robots y tiendas.
- * Cada celda se almacena en orden de recorrido y puede contener objetos gráficos.
+ * Represents the spiral path where robots and stores are placed.
+ * Each cell is stored in the order of traversal and can contain graphic objects.
  */
 public class SpiralRoad {
     private static final int CELL_SIZE = 25;
     private static final int MARGIN = 6;
-    private static final int ANCHO_CANVAS = 500;
-    private static final int ALTO_CANVAS = 500;
-    private ArrayList<Rectangle> rectangulos;
-    private ArrayList<Circle> circulos;
-    private HashMap<String, Celda> celdas;
+    private static final int CANVAS_WIDTH = 500;
+    private static final int CANVAS_HEIGHT = 500;
+    private ArrayList<Rectangle> rectangles;
+    private ArrayList<Circle> circles;
+    private HashMap<String, Cell> cells;
     private int length;
-    private ArrayList<int[]> celdasEnOrden;
+    private ArrayList<int[]> cellsInOrder;
     private static SpiralRoad instance;
 
     /**
-     * Construye un camino en espiral con un tamaño dado.
+     * Builds a spiral path with a given size.
      *
-     * @param length el tamaño base de la espiral
+     * @param length the base size of the spiral
      */
     public SpiralRoad(int length) {
         this.length = length;
-        rectangulos = new ArrayList<>();
-        circulos = new ArrayList<>();
-        celdas = new HashMap<>();
-        celdasEnOrden = new ArrayList<>();
+        rectangles = new ArrayList<>();
+        circles = new ArrayList<>();
+        cells = new HashMap<>();
+        cellsInOrder = new ArrayList<>();
         instance = this;
     }
 
     /**
-     * Devuelve la instancia única de {@code SpiralRoad}.
+     * Returns the unique instance of {@code SpiralRoad}.
      *
-     * @return instancia actual de SpiralRoad
+     * @return current SpiralRoad instance
      */
     public static SpiralRoad getInstance() {
         return instance;
     }
 
     /**
-     * Dibuja el camino en espiral y registra las celdas en orden.
+     * Draws the spiral path and registers cells in order.
      */
-    public void dibujar() {
+    public void draw() {
         int x = 0, y = 0;
         int dx = 1, dy = 0;
     
-        int maxCols = ANCHO_CANVAS / CELL_SIZE;
-        int maxRows = ALTO_CANVAS / CELL_SIZE;
+        int maxCols = CANVAS_WIDTH / CELL_SIZE;
+        int maxRows = CANVAS_HEIGHT / CELL_SIZE;
     
-        HashSet<String> ocupadas = new HashSet<>();
+        HashSet<String> occupied = new HashSet<>();
     
         int prevX = -1, prevY = -1;
     
         for (int i = 0; i < length; i++) {
-            if (!validarLimiteCeldas()) return;
+            if (!validateCellLimit()) return;
     
-            registrarCelda(x, y, ocupadas);
+            registerCell(x, y, occupied);
     
             int nextX = x + dx;
             int nextY = y + dy;
     
-            boolean habraGiro = necesitaGiro(nextX, nextY, maxCols, maxRows, ocupadas);
-            boolean esBloqueSolido = (prevX != -1 && habraGiro);
+            boolean willTurn = needsTurn(nextX, nextY, maxCols, maxRows, occupied);
+            boolean isSolidBlock = (prevX != -1 && willTurn);
     
-            dibujarCelda(x, y, dx, dy, esBloqueSolido);
+            drawCell(x, y, dx, dy, isSolidBlock);
     
             prevX = x;
             prevY = y;
     
-            if (habraGiro) {
-                int[] newDir = cambiarDireccion(dx, dy);
+            if (willTurn) {
+                int[] newDir = changeDirection(dx, dy);
                 dx = newDir[0];
                 dy = newDir[1];
                 nextX = x + dx;
@@ -83,70 +83,69 @@ public class SpiralRoad {
             x = nextX;
             y = nextY;
         }
-    
     }
-    
+
     /** 
-     * Verifica si ya se alcanzó el máximo permitido de celdas. 
-    */
-    private boolean validarLimiteCeldas() {
-        if (celdasEnOrden.size() >= 400) {
+     * Verifies if the maximum allowed number of cells has been reached.
+     */
+    private boolean validateCellLimit() {
+        if (cellsInOrder.size() >= 400) {
             JOptionPane.showMessageDialog(null,
-                "❌ Se superó el máximo de 400 celdas en la espiral.",
+                "❌ The maximum of 400 cells in the spiral has been exceeded.",
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
             return false;
         }
         return true;
     }
-    
+
     /** 
-     * Registra la celda en la lista y en ocupadas. 
-    */
-    private void registrarCelda(int x, int y, HashSet<String> ocupadas) {
-        celdasEnOrden.add(new int[]{x, y});
-        ocupadas.add(x + "," + y);
+     * Registers the cell in the list and in occupied set.
+     */
+    private void registerCell(int x, int y, HashSet<String> occupied) {
+        cellsInOrder.add(new int[]{x, y});
+        occupied.add(x + "," + y);
     }
-    
+
     /** 
-     * Decide si hay que girar antes de avanzar.
-    */
-    private boolean necesitaGiro(int nextX, int nextY, int maxCols, int maxRows, HashSet<String> ocupadas) {
+     * Decides if a turn is needed before advancing.
+     */
+    private boolean needsTurn(int nextX, int nextY, int maxCols, int maxRows, HashSet<String> occupied) {
         return (nextX < 0 || nextX >= maxCols ||
                 nextY < 0 || nextY >= maxRows ||
-                ocupadas.contains(nextX + "," + nextY));
+                occupied.contains(nextX + "," + nextY));
     }
-    
+
     /** 
-     * Dibuja rectángulo y círculo (si aplica). 
-    */
-    private void dibujarCelda(int x, int y, int dx, int dy, boolean esBloqueSolido) {
-        Rectangle r = crearRectangulo(x, y, dx, dy, esBloqueSolido);
-        rectangulos.add(r);
+     * Draws rectangle and circle (if applicable).
+     */
+    private void drawCell(int x, int y, int dx, int dy, boolean isSolidBlock) {
+        Rectangle r = createRectangle(x, y, dx, dy, isSolidBlock);
+        rectangles.add(r);
     
-        if (!esBloqueSolido) {
-            Circle c = crearCirculo(x, y);
-            circulos.add(c);
+        if (!isSolidBlock) {
+            Circle c = createCircle(x, y);
+            circles.add(c);
     
             String key = x + "," + y;
-            Celda celda = celdas.getOrDefault(key, new Celda(x, y));
-            celda.agregarObjeto(c);
-            celdas.put(key, celda);
+            Cell cell = cells.getOrDefault(key, new Cell(x, y));
+            cell.addObject(c);
+            cells.put(key, cell);
         }
     }
 
     /**
-     * Crea un rectángulo en la posición indicada del tablero.
-     * Ajusta su tamaño y posición si no corresponde a un punto de giro.
+     * Creates a rectangle at the given position on the board.
+     * Adjusts its size and position if it's not a turn point.
      */
-    private Rectangle crearRectangulo(int x, int y, int dx, int dy, boolean esPuntoDeGiro) {
+    private Rectangle createRectangle(int x, int y, int dx, int dy, boolean isTurnPoint) {
         int rectX = x * CELL_SIZE;
         int rectY = y * CELL_SIZE;
 
         int rectWidth = CELL_SIZE;
         int rectHeight = CELL_SIZE;
 
-        if (!esPuntoDeGiro) {
+        if (!isTurnPoint) {
             if (dx != 0) {
                 rectHeight = CELL_SIZE - MARGIN;
                 rectY += MARGIN / 2;
@@ -169,16 +168,16 @@ public class SpiralRoad {
     }
 
     /**
-     * Cambia la dirección de movimiento rotando 90 grados en sentido horario.
+     * Changes the direction of movement by rotating 90 degrees clockwise.
      */
-    private int[] cambiarDireccion(int dx, int dy) {
+    private int[] changeDirection(int dx, int dy) {
         return new int[]{-dy, dx};
     }
 
     /**
-     * Crea un círculo en la posición indicada del tablero y lo hace visible.
+     * Creates a circle at the given position on the board and makes it visible.
      */
-    private Circle crearCirculo(int x, int y) {
+    private Circle createCircle(int x, int y) {
         Circle c = new Circle(CELL_SIZE + 50);
         c.changeColor("white");
         c.moveHorizontal((x * CELL_SIZE) - 13);
@@ -188,54 +187,54 @@ public class SpiralRoad {
     }
 
     /**
-     * Hace visibles todos los objetos gráficos de la espiral.
+     * Makes all graphic objects in the spiral visible.
      */
     public void makeVisible() {
-        for (Rectangle r : rectangulos) r.makeVisible();
-        for (Circle c : circulos) c.makeVisible();
+        for (Rectangle r : rectangles) r.makeVisible();
+        for (Circle c : circles) c.makeVisible();
     }
 
     /**
-     * Hace invisibles todos los objetos gráficos de la espiral.
+     * Makes all graphic objects in the spiral invisible.
      */
     public void makeInvisible() {
-        for (Rectangle r : rectangulos) r.makeInvisible();
-        for (Circle c : circulos) c.makeInvisible();
+        for (Rectangle r : rectangles) r.makeInvisible();
+        for (Circle c : circles) c.makeInvisible();
     }
 
     /**
-     * Devuelve los objetos gráficos contenidos en una celda.
+     * Returns the graphic objects contained in a cell.
      *
-     * @param x coordenada X de la celda
-     * @param y coordenada Y de la celda
-     * @return lista de objetos en la celda
+     * @param x X coordinate of the cell
+     * @param y Y coordinate of the cell
+     * @return list of objects in the cell
      */
-    public ArrayList<Object> getObjetosEnCelda(int x, int y) {
-        Celda celda = celdas.get(x + "," + y);
-        return celda != null ? celda.getObjetos() : new ArrayList<>();
+    public ArrayList<Object> getObjectsInCell(int x, int y) {
+        Cell cell = cells.get(x + "," + y);
+        return cell != null ? cell.getObjects() : new ArrayList<>();
     }
 
     /**
-     * Obtiene la coordenada (x, y) de una celda por su ubicación (empezando en 1).
+     * Gets the coordinates (x, y) of a cell by its location (starting from 1).
      *
-     * @param location índice de la celda (1 = primera celda)
-     * @return arreglo con {x, y} o {@code null} si no existe
+     * @param location cell index (1 = first cell)
+     * @return array with {x, y} or {@code null} if not exists
      */
-    public int[] getCeldaPorUbicacion(int location) {
+    public int[] getCellByLocation(int location) {
         int index = location - 1;
-        if (index >= 0 && index < celdasEnOrden.size()) {
-            return celdasEnOrden.get(index);
+        if (index >= 0 && index < cellsInOrder.size()) {
+            return cellsInOrder.get(index);
         } else {
             return null;
         }
     }
 
     /**
-     * Devuelve el número total de celdas en la espiral.
+     * Returns the total number of cells in the spiral.
      *
-     * @return número de celdas
+     * @return number of cells
      */
-    public int getNumeroDeCeldas() {
-        return celdasEnOrden.size();
+    public int getNumberOfCells() {
+        return cellsInOrder.size();
     }
 }

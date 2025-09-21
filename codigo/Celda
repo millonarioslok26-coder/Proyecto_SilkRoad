@@ -1,59 +1,59 @@
 import java.util.ArrayList;
 
 /**
- * Representa una celda dentro del camino en espiral.
- * Cada celda tiene coordenadas (x, y) y puede contener múltiples objetos gráficos.
+ * Represents a cell in the spiral path.
+ * Each cell has coordinates (x, y) and can contain multiple graphic objects.
  */
-public class Celda {
+public class Cell {
     private int x;
     private int y;
-    private ArrayList<Object> objetos;
+    private ArrayList<Object> objects;
 
     /**
-     * Crea una celda en la posición indicada.
+     * Creates a cell at the given position.
      *
-     * @param x coordenada X de la celda
-     * @param y coordenada Y de la celda
+     * @param x X coordinate of the cell
+     * @param y Y coordinate of the cell
      */
-    public Celda(int x, int y) {
+    public Cell(int x, int y) {
         this.x = x;
         this.y = y;
-        this.objetos = new ArrayList<>();
+        this.objects = new ArrayList<>();
     }
 
     /**
-     * Devuelve la coordenada X de la celda.
+     * Returns the X coordinate of the cell.
      *
-     * @return valor de X
+     * @return X value
      */
     public int getX() {
         return x;
     }
 
     /**
-     * Devuelve la coordenada Y de la celda.
+     * Returns the Y coordinate of the cell.
      *
-     * @return valor de Y
+     * @return Y value
      */
     public int getY() {
         return y;
     }
 
     /**
-     * Agrega un objeto gráfico a la celda.
+     * Adds a graphic object to the cell.
      *
-     * @param obj objeto a agregar
+     * @param obj object to be added
      */
-    public void agregarObjeto(Object obj) {
-        objetos.add(obj);
+    public void addObject(Object obj) {
+        objects.add(obj);
     }
 
     /**
-     * Devuelve todos los objetos gráficos de la celda.
+     * Returns all the graphic objects in the cell.
      *
-     * @return lista de objetos en la celda
+     * @return list of objects in the cell
      */
-    public ArrayList<Object> getObjetos() {
-        return objetos;
+    public ArrayList<Object> getObjects() {
+        return objects;
     }
 }

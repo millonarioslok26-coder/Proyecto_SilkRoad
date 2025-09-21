@@ -1,0 +1,59 @@
+import java.util.ArrayList;
+
+/**
+ * Representa una celda dentro del camino en espiral.
+ * Cada celda tiene coordenadas (x, y) y puede contener múltiples objetos gráficos.
+ */
+public class Celda {
+    private int x;
+    private int y;
+    private ArrayList<Object> objetos;
+
+    /**
+     * Crea una celda en la posición indicada.
+     *
+     * @param x coordenada X de la celda
+     * @param y coordenada Y de la celda
+     */
+    public Celda(int x, int y) {
+        this.x = x;
+        this.y = y;
+        this.objetos = new ArrayList<>();
+    }
+
+    /**
+     * Devuelve la coordenada X de la celda.
+     *
+     * @return valor de X
+     */
+    public int getX() {
+        return x;
+    }
+
+    /**
+     * Devuelve la coordenada Y de la celda.
+     *
+     * @return valor de Y
+     */
+    public int getY() {
+        return y;
+    }
+
+    /**
+     * Agrega un objeto gráfico a la celda.
+     *
+     * @param obj objeto a agregar
+     */
+    public void agregarObjeto(Object obj) {
+        objetos.add(obj);
+    }
+
+    /**
+     * Devuelve todos los objetos gráficos de la celda.
+     *
+     * @return lista de objetos en la celda
+     */
+    public ArrayList<Object> getObjetos() {
+        return objetos;
+    }
+}

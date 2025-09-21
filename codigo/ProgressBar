@@ -1,31 +1,25 @@
 import java.util.List;
 
 /**
- * Representa una barra de progreso visual que muestra el progreso de recolección
- * de tenges en relación al máximo posible disponible en las tiendas y robots.
+ * Represents a visual progress bar that shows the progress of collecting tenges
+ * in relation to the maximum available from stores and robots.
  */
 public class ProgressBar {
     private Rectangle background;
     private Rectangle fill;
     private Rectangle border;
     private boolean visible;
-
-    // Configuración visual - posicionada debajo del tablero principal
     private static final int WIDTH = 300;
     private static final int HEIGHT = 25;
-    private static final int X_POSITION = 50;  // Centrada en el canvas
-    private static final int Y_POSITION = 510; // Debajo del tablero magenta
+    private static final int X_POSITION = 50;
+    private static final int Y_POSITION = 510;
     private static final int BORDER_SIZE = 2;
-
-    // Referencias para cálculos dinámicos
     private List<Store> stores;
     private List<Robot> robots;
-
-    // Para tracking de cambios visuales
     private int lastFillWidth = 0;
 
     /**
-     * Crea una nueva barra de progreso.
+     * Creates a new progress bar.
      */
     public ProgressBar(List<Store> stores, List<Robot> robots) {
         this.stores = stores;
@@ -33,40 +27,40 @@ public class ProgressBar {
         this.visible = false;
         initializeComponents();
 
-        // Conectar esta barra de progreso a todos los robots
+        // Connect this progress bar to all robots
         for (Robot robot : robots) {
             robot.setProgressBar(this);
         }
     }
 
     /**
-     * Inicializa los componentes gráficos de la barra.
+     * Initializes the graphical components of the progress bar.
      */
     private void initializeComponents() {
-        // Borde negro para mejor visibilidad
+        // Black border for better visibility
         border = new Rectangle();
         border.changeSize(HEIGHT + 4, WIDTH + 4);
         border.changeColor("black");
         border.moveHorizontal(X_POSITION - 2);
         border.moveVertical(Y_POSITION - 2);
 
-        // Fondo blanco de la barra
+        // White background of the bar
         background = new Rectangle();
         background.changeSize(HEIGHT, WIDTH);
         background.changeColor("white");
         background.moveHorizontal(X_POSITION);
         background.moveVertical(Y_POSITION);
 
-        // Relleno verde que representa el progreso
+        // Green fill representing the progress
         fill = new Rectangle();
-        fill.changeSize(HEIGHT - (BORDER_SIZE * 2), 1); // Altura con margen, ancho mínimo
+        fill.changeSize(HEIGHT - (BORDER_SIZE * 2), 1); // Height with margin, minimum width
         fill.changeColor("green");
         fill.moveHorizontal(X_POSITION + BORDER_SIZE);
         fill.moveVertical(Y_POSITION + BORDER_SIZE);
     }
 
     /**
-     * Calcula el total actual de tenges que tienen todos los robots.
+     * Calculates the current total of tenges held by all robots.
      */
     private int calculateCurrentRobotTenges() {
         int totalTenges = 0;
@@ -77,7 +71,7 @@ public class ProgressBar {
     }
 
     /**
-     * Calcula el máximo actual de tenges disponibles en tiendas + tenges en robots.
+     * Calculates the current maximum tenges available in stores + tenges in robots.
      */
     private int calculateCurrentMaxTenges() {
         int totalTenges = 0;
@@ -91,7 +85,7 @@ public class ProgressBar {
     }
 
     /**
-     * Actualiza la barra de progreso visual.
+     * Updates the visual progress bar.
      */
     public void update() {
         if (!visible) {
@@ -127,7 +121,7 @@ public class ProgressBar {
     }
 
     /**
-     * Hace visible la barra de progreso.
+     * Makes the progress bar visible.
      */
     public void makeVisible() {
         if (!visible) {
@@ -139,7 +133,7 @@ public class ProgressBar {
     }
 
     /**
-     * Oculta la barra de progreso.
+     * Hides the progress bar.
      */
     public void makeInvisible() {
         if (visible) {

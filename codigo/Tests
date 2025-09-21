@@ -1,0 +1,124 @@
+import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
+public class SilkRoadC2Test {
+
+    private SilkRoad road;
+
+    @Before
+    public void setUp() {
+        // Inicializamos un SilkRoad con 20 celdas
+        road = new SilkRoad(20);
+        // Aseguramos que las pruebas sean invisibles
+        road.makeInvisible();
+    }
+
+    // -------------------
+    // ¿Qué debería hacer?
+    // -------------------
+
+    @Test
+    public void testAgregarTiendaYRobot() {
+        road.placeStore(5, 10);
+        road.placeRobot(2);
+
+        int[][] stores = road.stores();
+        int[][] robots = road.robots();
+
+        assertEquals(1, stores.length);
+        assertEquals(1, robots.length);
+        assertEquals(5, stores[0][0]);
+        assertEquals(10, stores[0][1]);
+        assertEquals(2, robots[0][0]);
+    }
+
+    @Test
+    public void testRobotSeMueveYRecolectaGanancia() {
+        road.placeStore(6, 10);
+        road.placeRobot(5);
+
+        road.moveRobot(5, 1); // robot va de 5 a 6
+
+        assertTrue("Ganancia debe ser positiva", road.profit() > 0);
+    }
+
+    @Test
+    public void testResupplyReiniciaTiendas() {
+        road.placeStore(4, 8);
+        road.placeStore(7, 12);
+
+        road.resupplyStores();
+
+        int[][] stores = road.stores();
+        assertEquals(8, stores[0][1]);
+        assertEquals(12, stores[1][1]);
+    }
+
+    @Test
+    public void testRebootReseteaRobotsYGanancia() {
+        road.placeStore(3, 10);
+        road.placeRobot(0);
+
+        road.moveRobot(0, 3); // recoge ganancia
+        assertTrue(road.profit() > 0);
+
+        road.reboot(); // nuevo día
+        assertEquals(0, road.profit());
+    }
+
+    @Test
+    public void testMoveRobotsMaximizaGanancia() {
+        road.placeStore(5, 10);
+        road.placeStore(10, 20);
+        road.placeRobot(0);
+
+        road.moveRobots(); // debería ir al de 20
+
+        assertTrue("Ganancia debe ser mayor a 0", road.profit() > 0);
+    }
+
+    // -----------------------
+    // ¿Qué NO debería hacer?
+    // -----------------------
+
+    @Test
+    public void testNoPermiteDuplicarTiendas() {
+        road.placeStore(5, 10);
+        road.placeStore(5, 20); // misma ubicación
+
+        assertFalse("No debe permitir duplicar tiendas", road.ok());
+        assertEquals(1, road.stores().length);
+    }
+
+    @Test
+    public void testNoPermiteDuplicarRobots() {
+        road.placeRobot(3);
+        road.placeRobot(3); // misma ubicación
+
+        assertFalse("No debe permitir duplicar robots", road.ok());
+        assertEquals(1, road.robots().length);
+    }
+
+    @Test
+    public void testNoPermiteMoverRobotFueraDeLimite() {
+        road.placeRobot(0);
+        road.moveRobot(0, -1); // fuera de rango
+
+        assertFalse("Movimiento inválido debe fallar", road.ok());
+    }
+
+    @Test
+    public void testNoGanaSiTiendaYaVacia() {
+        road.placeStore(5, 10);
+        road.placeRobot(4);
+
+        road.moveRobot(4, 1); // recoge 10
+        int profitAntes = road.profit();
+
+        road.moveRobot(5, 0); // intenta otra vez
+        int profitDespues = road.profit();
+
+        assertEquals("No debe aumentar ganancia en tienda vacía", profitAntes, profitDespues);
+    }
+}

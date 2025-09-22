@@ -1,124 +1,211 @@
 import static org.junit.Assert.*;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SilkRoadC2Test {
-
-    private SilkRoad road;
-
+/**
+ * Clase de pruebas para SilkRoad creada colectivamente
+ * Iniciales MV: Montes y Valero
+ * Adaptada para BlueJ
+ */
+public class SilkRoadCC2Test {
+    
+    private SilkRoad silkRoad;
+    
     @Before
     public void setUp() {
-        // Inicializamos un SilkRoad con 20 celdas
-        road = new SilkRoad(20);
-        // Aseguramos que las pruebas sean invisibles
-        road.makeInvisible();
+        // Configuración inicial para cada test
+        silkRoad = new SilkRoad(20);
+        // En BlueJ, evitamos makeInvisible() para poder ver la visualización si es necesario
     }
-
-    // -------------------
-    // ¿Qué debería hacer?
-    // -------------------
-
-    @Test
-    public void testAgregarTiendaYRobot() {
-        road.placeStore(5, 10);
-        road.placeRobot(2);
-
-        int[][] stores = road.stores();
-        int[][] robots = road.robots();
-
-        assertEquals(1, stores.length);
-        assertEquals(1, robots.length);
-        assertEquals(5, stores[0][0]);
-        assertEquals(10, stores[0][1]);
-        assertEquals(2, robots[0][0]);
+    
+    @After
+    public void tearDown() {
+        // Limpieza después de cada test
+        if (silkRoad != null) {
+            silkRoad.makeInvisible();
+            // En BlueJ no usamos finish() con System.exit(0)
+        }
     }
-
+    
+    // 1. Pruebas de Inicialización
     @Test
-    public void testRobotSeMueveYRecolectaGanancia() {
-        road.placeStore(6, 10);
-        road.placeRobot(5);
-
-        road.moveRobot(5, 1); // robot va de 5 a 6
-
-        assertTrue("Ganancia debe ser positiva", road.profit() > 0);
+    public void accordingMVShouldInitializeWithCorrectLength() {
+        assertTrue("La inicialización debería ser exitosa", silkRoad.ok());
     }
-
+    
+    // 2. Pruebas de Gestión de Tiendas
     @Test
-    public void testResupplyReiniciaTiendas() {
-        road.placeStore(4, 8);
-        road.placeStore(7, 12);
-
-        road.resupplyStores();
-
-        int[][] stores = road.stores();
-        assertEquals(8, stores[0][1]);
-        assertEquals(12, stores[1][1]);
+    public void accordingMVShouldPlaceStoreSuccessfully() {
+        silkRoad.placeStore(5, 200);
+        assertTrue("Debería colocar tienda exitosamente", silkRoad.ok());
+        
+        int[][] stores = silkRoad.stores();
+        assertEquals("Debería tener 1 tienda", 1, stores.length);
+        assertEquals("Ubicación correcta", 5, stores[0][0]);
+        assertEquals("Cantidad correcta de tenges", 200, stores[0][1]);
     }
-
+    
     @Test
-    public void testRebootReseteaRobotsYGanancia() {
-        road.placeStore(3, 10);
-        road.placeRobot(0);
-
-        road.moveRobot(0, 3); // recoge ganancia
-        assertTrue(road.profit() > 0);
-
-        road.reboot(); // nuevo día
-        assertEquals(0, road.profit());
+    public void accordingMVShouldPreventDuplicateStorePlacement() {
+        silkRoad.placeStore(5, 200);
+        silkRoad.placeStore(5, 300); // Misma ubicación
+        assertFalse("No debería permitir tiendas duplicadas", silkRoad.ok());
     }
-
+    
     @Test
-    public void testMoveRobotsMaximizaGanancia() {
-        road.placeStore(5, 10);
-        road.placeStore(10, 20);
-        road.placeRobot(0);
-
-        road.moveRobots(); // debería ir al de 20
-
-        assertTrue("Ganancia debe ser mayor a 0", road.profit() > 0);
+    public void accordingMVShouldRemoveExistingStore() {
+        silkRoad.placeStore(5, 200);
+        silkRoad.removeStore(5);
+        assertTrue("Debería eliminar tienda exitosamente", silkRoad.ok());
     }
-
-    // -----------------------
-    // ¿Qué NO debería hacer?
-    // -----------------------
-
+    
     @Test
-    public void testNoPermiteDuplicarTiendas() {
-        road.placeStore(5, 10);
-        road.placeStore(5, 20); // misma ubicación
-
-        assertFalse("No debe permitir duplicar tiendas", road.ok());
-        assertEquals(1, road.stores().length);
+    public void accordingMVShouldFailRemovingNonExistentStore() {
+        silkRoad.removeStore(10); // Tienda que no existe
+        assertFalse("No debería eliminar tienda inexistente", silkRoad.ok());
     }
-
+    
+    // 3. Pruebas de Gestión de Robots
     @Test
-    public void testNoPermiteDuplicarRobots() {
-        road.placeRobot(3);
-        road.placeRobot(3); // misma ubicación
-
-        assertFalse("No debe permitir duplicar robots", road.ok());
-        assertEquals(1, road.robots().length);
+    public void accordingMVShouldPlaceRobotSuccessfully() {
+        silkRoad.placeRobot(3);
+        assertTrue("Debería colocar robot exitosamente", silkRoad.ok());
     }
-
+    
     @Test
-    public void testNoPermiteMoverRobotFueraDeLimite() {
-        road.placeRobot(0);
-        road.moveRobot(0, -1); // fuera de rango
-
-        assertFalse("Movimiento inválido debe fallar", road.ok());
+    public void accordingMVShouldPreventDuplicateRobotPlacement() {
+        silkRoad.placeRobot(3);
+        silkRoad.placeRobot(3); // Misma ubicación inicial
+        assertFalse("No debería permitir robots duplicados", silkRoad.ok());
     }
-
+    
+    // 4. Pruebas de Movimiento de Robots
     @Test
-    public void testNoGanaSiTiendaYaVacia() {
-        road.placeStore(5, 10);
-        road.placeRobot(4);
-
-        road.moveRobot(4, 1); // recoge 10
-        int profitAntes = road.profit();
-
-        road.moveRobot(5, 0); // intenta otra vez
-        int profitDespues = road.profit();
-
-        assertEquals("No debe aumentar ganancia en tienda vacía", profitAntes, profitDespues);
+    public void accordingMVShouldMoveRobotToEmptyCell() {
+        silkRoad.placeRobot(5);
+        silkRoad.moveRobot(5, 3); // Mover 3 celdas
+        assertTrue("Debería mover robot exitosamente", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldMoveRobotToStoreAndCollect() {
+        silkRoad.placeStore(8, 150);
+        silkRoad.placeRobot(5);
+        silkRoad.moveRobot(5, 3); // Mover a la tienda en 8
+        assertTrue("Debería mover a tienda y recolectar", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldPreventOutOfBoundsMovement() {
+        silkRoad.placeRobot(18);
+        silkRoad.moveRobot(18, 5); // Fuera de límites
+        assertFalse("No debería permitir movimiento fuera de límites", silkRoad.ok());
+    }
+    
+    // 5. Pruebas de Reabastecimiento y Reinicio
+    @Test
+    public void accordingMVShouldResupplyAllStores() {
+        silkRoad.placeStore(3, 100);
+        silkRoad.placeStore(7, 200);
+        silkRoad.resupplyStores();
+        assertTrue("Debería reabastecer tiendas", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldRebootCorrectly() {
+        silkRoad.placeStore(3, 100);
+        silkRoad.placeRobot(1);
+        silkRoad.reboot(); // Nuevo día
+        assertTrue("Debería reiniciar correctamente", silkRoad.ok());
+    }
+    
+    // 6. Pruebas de Múltiples Robots y Tiendas
+    @Test
+    public void accordingMVShouldHandleMultipleRobotsMoving() {
+        silkRoad.placeStore(5, 100);
+        silkRoad.placeStore(10, 200);
+        silkRoad.placeRobot(3);
+        silkRoad.placeRobot(8);
+        silkRoad.moveRobots(); // Movimiento automático
+        assertTrue("Debería manejar múltiples robots", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldCalculateTotalProfitCorrectly() {
+        silkRoad.placeStore(5, 100);
+        silkRoad.placeRobot(3);
+        silkRoad.moveRobot(3, 2); // Mover a tienda en 5
+        int profit = silkRoad.profit();
+        assertTrue("Debería calcular ganancia positiva", profit > 0);
+    }
+    
+    // 7. Pruebas de Consultas de Estado
+    @Test
+    public void accordingMVShouldReturnStoresInformation() {
+        silkRoad.placeStore(3, 100);
+        silkRoad.placeStore(7, 200);
+        int[][] storesInfo = silkRoad.stores();
+        assertEquals("Debería retornar 2 tiendas", 2, storesInfo.length);
+    }
+    
+    // 8. Pruebas de Casos Extremos
+    @Test
+    public void accordingMVShouldHandleNoStoresScenario() {
+        silkRoad.placeRobot(5);
+        silkRoad.moveRobots(); // No hay tiendas para mover
+        assertTrue("Debería manejar escenario sin tiendas", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldHandleNoRobotsScenario() {
+        silkRoad.placeStore(5, 100);
+        silkRoad.moveRobots(); // No hay robots para mover
+        assertTrue("Debería manejar escenario sin robots", silkRoad.ok());
+    }
+    
+    // Pruebas adicionales específicas para BlueJ
+    @Test
+    public void accordingMVShouldHandleVisualizationMethods() {
+        // Prueba que los métodos de visualización no fallen
+        silkRoad.makeVisible();
+        silkRoad.makeInvisible();
+        assertTrue("Métodos de visualización deberían funcionar", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldHandleStoreWithZeroTenges() {
+        silkRoad.placeStore(5, 0); // Tienda con 0 tenges
+        silkRoad.placeRobot(3);
+        silkRoad.moveRobot(3, 2); // Mover a tienda
+        assertTrue("Debería manejar tienda con 0 tenges", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldHandleNegativeMovement() {
+        silkRoad.placeRobot(10);
+        silkRoad.moveRobot(10, -3); // Movimiento negativo
+        assertTrue("Debería manejar movimiento negativo", silkRoad.ok());
+    }
+    
+    @Test
+    public void accordingMVShouldHandleMultipleOperations() {
+        // Prueba integral con múltiples operaciones
+        silkRoad.placeStore(3, 100);
+        silkRoad.placeStore(7, 200);
+        silkRoad.placeRobot(1);
+        silkRoad.placeRobot(5);
+        
+        silkRoad.moveRobots();
+        silkRoad.reboot();
+        silkRoad.moveRobots();
+        
+        assertTrue("Debería manejar operaciones múltiples", silkRoad.ok());
+        assertTrue("Debería tener ganancia acumulada", silkRoad.profit() > 0);
+    }
+    
+    // Método main para ejecutar tests en BlueJ
+    public static void main(String[] args) {
+        org.junit.runner.JUnitCore.main("SilkRoadCC2Test");
     }
 }

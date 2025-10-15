@@ -6,17 +6,16 @@ import javax.swing.JOptionPane;
  * donde se administran tiendas y robots dentro de un tablero en espiral.
  */
 public class SilkRoad {
-    private int length;
-    private List<Store> stores;
-    private List<Robot> robots;
+    private final int length;
+    private final List<Store> stores;
+    private final List<Robot> robots;
     private boolean ok;
-    private SpiralRoad spiral;
-    private ProgressBar progressBar;
+    private final SpiralRoad spiral;
+    private final ProgressBar progressBar;
+    private boolean silentMode = false;
 
     /**
      * Crea una nueva simulación con una espiral de la longitud indicada.
-     *
-     * @param length longitud de la espiral base
      */
     public SilkRoad(int length) {
         this.spiral = new SpiralRoad(length);
@@ -27,16 +26,11 @@ public class SilkRoad {
         this.ok = true;
         this.progressBar = new ProgressBar(stores, robots);
         progressBar.makeVisible();
-        JOptionPane.showMessageDialog(null, "✅ SilkRoad inicializado con " + this.length + " celdas.");
+        showMessage("✅ SilkRoad inicializado con " + this.length + " celdas.");
     }
 
     /**
      * Constructor que crea una ruta de seda a partir de la entrada tipo maratón.
-     * Este constructor se encarga de procesar un conjunto de eventos diarios 
-     * en la simulación y de realizar las operaciones correspondientes, 
-     * como colocar robots y tiendas, y calcular la ganancia acumulada.
-     * 
-     * @param days matriz de eventos; cada fila {t, x} o {t, x, c}
      */
     public SilkRoad(int[][] days) {
         int maxLocation = 0;
@@ -57,29 +51,39 @@ public class SilkRoad {
             int t = d[0], x = d[1];
             if (t == 1) {
                 placeRobot(x);
-                JOptionPane.showMessageDialog(null, "🤖 Robot colocado en " + x);
+                showMessage("🤖 Robot colocado en " + x);
             } else if (t == 2 && d.length == 3) {
                 placeStore(x, d[2]);
-                JOptionPane.showMessageDialog(null, "🏪 Tienda colocada en " + x + " con " + d[2] + " tenges.");
+                showMessage("🏪 Tienda colocada en " + x + " con " + d[2] + " tenges.");
             }
-            reboot();
-            moveRobots();
-            JOptionPane.showMessageDialog(null, "💰 Ganancia acumulada: " + profit());
+            showMessage("💰 Ganancia acumulada: " + profit());
+        }
+    }
+
+    /**
+     * Activa o desactiva el modo silencioso (sin diálogos JOptionPane).
+     */
+    public void setSilentMode(boolean silent) {
+        this.silentMode = silent;
+    }
+
+    /**
+     * Muestra un mensaje solo si no está en modo silencioso.
+     */
+    private void showMessage(String message) {
+        if (!silentMode) {
+            JOptionPane.showMessageDialog(null, message);
         }
     }
 
     /**
      * Coloca una tienda en la ubicación indicada con la cantidad de tenges especificada.
-     * Si ya existe una tienda en esa ubicación, no se realiza la operación.
-     * 
-     * @param location ubicación de la tienda en el tablero
-     * @param tenges cantidad de tenges disponibles en la tienda
      */
     public void placeStore(int location, int tenges) {
-        for (Store s : stores) {            
-            if (s.getLocation() == location) { 
-                ok = false; 
-                return; 
+        for (Store s : stores) {
+            if (s.getLocation() == location) {
+                ok = false;
+                return;
             }
         }
         Store newStore = new Store(location, tenges);
@@ -91,10 +95,7 @@ public class SilkRoad {
     }
 
     /**
-     * Elimina la tienda de la ubicación indicada. Si no existe tienda en esa 
-     * ubicación, se notifica al usuario.
-     * 
-     * @param location ubicación de la tienda a eliminar
+     * Elimina la tienda de la ubicación indicada.
      */
     public void removeStore(int location) {
         Store toRemove = stores.stream().filter(s -> s.getLocation() == location).findFirst().orElse(null);
@@ -102,19 +103,16 @@ public class SilkRoad {
             stores.remove(toRemove);
             toRemove.makeInvisible();
             progressBar.update();
-            JOptionPane.showMessageDialog(null, "❌ Tienda eliminada en " + location);
+            showMessage("❌ Tienda eliminada en " + location);
             ok = true;
         } else {
-            JOptionPane.showMessageDialog(null, "⚠ No existe tienda en " + location);
+            showMessage("⚠ No existe tienda en " + location);
             ok = false;
         }
     }
 
     /**
-     * Coloca un robot en la ubicación indicada. Si ya existe un robot en esa 
-     * ubicación, no se realiza la operación.
-     * 
-     * @param location ubicación inicial del robot
+     * Coloca un robot en la ubicación indicada.
      */
     public void placeRobot(int location) {
         for (Robot r : robots) {
@@ -131,27 +129,24 @@ public class SilkRoad {
     }
 
     /**
-     * Elimina un robot de la ubicación indicada. Si no existe robot en esa 
-     * ubicación, se notifica al usuario.
-     * 
-     * @param location ubicación del robot a eliminar
+     * Elimina un robot de la ubicación indicada.
      */
     public void removeRobot(int location) {
         Robot toRemove = robots.stream().filter(r -> r.getLocation() == location).findFirst().orElse(null);
         if (toRemove != null) {
             robots.remove(toRemove);
             toRemove.makeInvisible();
-            JOptionPane.showMessageDialog(null, "❌ Robot eliminado en " + location);
+            showMessage("❌ Robot eliminado en " + location);
             ok = true;
         } else {
-            JOptionPane.showMessageDialog(null, "⚠ No existe robot en " + location);
+            showMessage("⚠ No existe robot en " + location);
             ok = false;
         }
     }
 
     /**
-     * Mueve todos los robots buscando maximizar la ganancia neta al mover
-     * los robots a las tiendas con más tenges disponibles.
+     * Mueve todos los robots buscando maximizar la ganancia neta.
+     * Usa un algoritmo greedy simple para visualización.
      */
     public void moveRobots() {
         Set<Store> disponibles = new HashSet<>();
@@ -161,147 +156,171 @@ public class SilkRoad {
                 disponibles.add(s);
             }
         }
-        
+
         while (true) {
-            Robot bestR = null; Store bestS = null; int bestGain = 0;
+            Robot bestR = null; 
+            Store bestS = null; 
+            int bestGain = 0;
+            
             for (Robot r : robots) {
                 for (Store s : disponibles) {
                     int gain = s.getTenges() - Math.abs(r.getLocation() - s.getLocation());
                     if (gain > bestGain) {
-                        bestGain = gain; bestR = r; bestS = s;
+                        bestGain = gain; 
+                        bestR = r; 
+                        bestS = s;
                     }
                 }
             }
-            if (bestGain <= 0 || bestR == null) {
+            if (bestGain == 0) {
                 break;
             }
 
             bestR.moveToStore(bestS.getLocation(), bestS.getTenges());
-            JOptionPane.showMessageDialog(null, "🤖 Robot movido a tienda en " + bestS.getLocation() +
-                                                " con ganancia " + bestGain);
+            showMessage("🤖 Robot movido a tienda en " + bestS.getLocation() +
+                    " con ganancia " + bestGain);
             bestS.empty();
             disponibles.remove(bestS);
         }
 
         robots.stream().max(Comparator.comparingInt(Robot::getTotalProfit))
-              .ifPresent(r -> r.blink(4, 150));
+                .ifPresent(r -> r.blink(4, 150));
 
         progressBar.update();
         ok = true;
     }
 
     /**
-     * Mueve un robot manualmente desde su ubicación actual una cantidad de celdas.
-     * Si el robot llega a una tienda con tenges disponibles, recoge el dinero
-     * (ganancia = valor tienda - distancia).
-     * 
-     * @param location ubicación actual del robot
-     * @param meters cantidad de celdas a mover el robot
+     * Mueve un robot manualmente desde su ubicación actual.
      */
     public void moveRobot(int location, int meters) {
-        Robot robotToMove = robots.stream()
-            .filter(r -> r.getLocation() == location)
-            .findFirst()
-            .orElse(null);
-
+        Robot robotToMove = findRobotAt(location);
         if (robotToMove == null) {
-            JOptionPane.showMessageDialog(null, "⚠ No hay robot en la ubicación " + location);
+            showNoRobotWarning(location);
             ok = false;
             return;
         }
 
         int newLocation = location + meters;
-        if (newLocation < 0 || newLocation >= length) {
-            JOptionPane.showMessageDialog(null, "⚠ Movimiento fuera de los límites (0 - " + (length - 1) + ")");
+        if (isOutOfBounds(newLocation)) {
+            showOutOfBoundsWarning();
             ok = false;
             return;
         }
 
-        Store targetStore = stores.stream()
-            .filter(s -> s.getLocation() == newLocation && s.getTenges() > 0)
-            .findFirst()
-            .orElse(null);
+        Store targetStore = findStoreAt(newLocation);
 
         if (targetStore != null) {
-            int distance = Math.abs(newLocation - location);
-            robotToMove.moveToStore(newLocation, targetStore.getTenges());
-            targetStore.empty();
+            moveRobotToStore(robotToMove, newLocation, targetStore);
         } else {
-            robotToMove.moveToStore(newLocation, 0);
+            moveRobotToEmptyLocation(robotToMove, newLocation);
         }
 
-        robots.stream().max(Comparator.comparingInt(Robot::getTotalProfit))
-              .ifPresent(r -> r.blink(4, 150));
-
+        blinkBestRobot();
         progressBar.update();
         ok = true;
     }
 
+    private Robot findRobotAt(int location) {
+        return robots.stream()
+                .filter(r -> r.getLocation() == location)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void showNoRobotWarning(int location) {
+        showMessage("⚠ No hay robot en la ubicación " + location);
+    }
+
+    private boolean isOutOfBounds(int location) {
+        return location < 0 || location >= length;
+    }
+
+    private void showOutOfBoundsWarning() {
+        showMessage("⚠ Movimiento fuera de los límites (0 - " + (length - 1) + ")");
+    }
+
+    private Store findStoreAt(int location) {
+        return stores.stream()
+                .filter(s -> s.getLocation() == location && s.getTenges() > 0)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void moveRobotToStore(Robot robot, int location, Store store) {
+        int tenges = store.getTenges();
+        robot.moveToStore(location, tenges);
+        store.empty();
+    }
+
+    private void moveRobotToEmptyLocation(Robot robot, int location) {
+        robot.moveToStore(location, 0);
+    }
+
+    private void blinkBestRobot() {
+        robots.stream()
+                .max(Comparator.comparingInt(Robot::getTotalProfit))
+                .ifPresent(r -> r.blink(4, 150));
+    }
+
     /**
-     * Reabastece todas las tiendas, restaurando la cantidad inicial de tenges
-     * en cada una de ellas.
+     * Reabastece todas las tiendas.
      */
     public void resupplyStores() {
         for (Store s : stores) {
             s.resupply();
-            JOptionPane.showMessageDialog(null, "🔄 Tienda en " + s.getLocation() + " reabastecida.");
+            showMessage("🔄 Tienda en " + s.getLocation() + " reabastecida.");
         }
         progressBar.update();
         ok = true;
     }
 
     /**
-     * Devuelve todos los robots a su posición inicial en el tablero.
+     * Devuelve todos los robots a su posición inicial.
      */
     public void returnRobots() {
         for (Robot r : robots) {
             r.returnToStart();
         }
-        JOptionPane.showMessageDialog(null, "↩ Todos los robots regresaron a su posición inicial.");
+        showMessage("↩ Todos los robots regresaron a su posición inicial.");
         ok = true;
     }
 
     /**
-     * Reinicia el simulador al inicio de un nuevo día. Se muestra un resumen
-     * de las tiendas antes del reinicio, y las tiendas son reabastecidas.
+     * Reinicia el simulador al inicio de un nuevo día.
      */
     public void reboot() {
         StringBuilder resumen = new StringBuilder("📊 Resumen de tiendas antes del reinicio:\n");
-    
+
         for (Store s : stores) {
             resumen.append(" - Tienda en ")
-                   .append(s.getLocation())
-                   .append(" fue vaciada ")
-                   .append(s.getEmptiedCount())
-                   .append(" veces, entregó un total de ")
-                   .append(s.getTotalGiven())
-                   .append(" tenges.\n");
-    
+                    .append(s.getLocation())
+                    .append(" fue vaciada ")
+                    .append(s.getEmptiedCount())
+                    .append(" veces, entregó un total de ")
+                    .append(s.getTotalGiven())
+                    .append(" tenges.\n");
+
             s.resupply();
         }
-    
+
         for (Robot r : robots) {
             r.resetDay();
-        }  
+        }
         progressBar.update();
-        JOptionPane.showMessageDialog(null, resumen.toString() + "\n🌅 Nuevo día: tiendas resurtidas y robots reiniciados.");
+        showMessage(resumen + "\n🌅 Nuevo día: tiendas resurtidas y robots reiniciados.");
         ok = true;
     }
 
     /**
-     * Calcula la ganancia total de todos los robots en la simulación.
-     * 
-     * @return la ganancia total acumulada por todos los robots
+     * Calcula la ganancia total de todos los robots.
      */
     public int profit() {
         return robots.stream().mapToInt(Robot::getTotalProfit).sum();
     }
 
     /**
-     * Obtiene los datos de todas las tiendas, incluyendo su ubicación y la cantidad 
-     * de tenges disponibles en cada una.
-     * 
-     * @return una matriz bidimensional con las ubicaciones y tenges de todas las tiendas
+     * Obtiene los datos de todas las tiendas.
      */
     public int[][] stores() {
         int[][] data = new int[stores.size()][2];
@@ -313,26 +332,20 @@ public class SilkRoad {
     }
 
     /**
-     * Obtiene los datos de todas las tiendas que han sido vaciadas, incluyendo
-     * su ubicación y la cantidad de veces que fueron vaciadas.
-     * 
-     * @return una matriz bidimensional con las ubicaciones y la cantidad de veces que
-     *         fueron vaciadas las tiendas
+     * Obtiene los datos de todas las tiendas que han sido vaciadas.
      */
     public int[][] emptiedStores() {
         List<int[]> res = new ArrayList<>();
         for (Store s : stores) {
             int[] storeData = new int[]{s.getLocation(), s.getEmptiedCount()};
             res.add(storeData);
-        }        
+        }
         res.sort(Comparator.comparingInt(a -> a[0]));
         return res.toArray(new int[0][0]);
     }
 
     /**
-     * Obtiene los datos de todos los robots, incluyendo su ubicación inicial.
-     * 
-     * @return una matriz bidimensional con las ubicaciones iniciales de los robots
+     * Obtiene los datos de todos los robots.
      */
     public int[][] robots() {
         int[][] data = new int[robots.size()][1];
@@ -345,9 +358,6 @@ public class SilkRoad {
 
     /**
      * Obtiene las ganancias por cada movimiento realizado por los robots.
-     * 
-     * @return una matriz bidimensional con la ubicación inicial de los robots y las
-     *         ganancias obtenidas por cada movimiento realizado
      */
     public int[][] profitPerMove() {
         List<int[]> res = new ArrayList<>();
@@ -366,7 +376,7 @@ public class SilkRoad {
     }
 
     /**
-     * Hace visibles todos los componentes de la simulación (espiral, tiendas, robots y barra de progreso).
+     * Hace visibles todos los componentes de la simulación.
      */
     public void makeVisible() {
         spiral.makeVisible();
@@ -380,7 +390,7 @@ public class SilkRoad {
     }
 
     /**
-     * Hace invisibles todos los componentes de la simulación (espiral, tiendas, robots y barra de progreso).
+     * Hace invisibles todos los componentes de la simulación.
      */
     public void makeInvisible() {
         spiral.makeInvisible();
@@ -397,16 +407,14 @@ public class SilkRoad {
      * Finaliza la simulación y cierra la aplicación.
      */
     public void finish() {
-        JOptionPane.showMessageDialog(null, "🏁 Fin del simulador.");
+        showMessage("🏁 Fin del simulador.");
         System.exit(0);
     }
 
     /**
      * Verifica si la simulación está en un estado válido.
-     * 
-     * @return true si la simulación está en un estado válido, false de lo contrario
      */
-    public boolean ok() { 
-        return ok; 
+    public boolean ok() {
+        return ok;
     }
 }

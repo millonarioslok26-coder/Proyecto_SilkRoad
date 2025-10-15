@@ -1,123 +1,340 @@
 import java.util.*;
-import java.lang.reflect.*;
 
 public class SilkRoadContest {
-
-    public int[] dailyProfits;       // ganancias acumuladas por día
-    public SilkRoad simulator;       // simulación activa
-
+    
     /**
-     * Resuelve el problema de la maratón.
-     * Recibe un arreglo de eventos donde {0} separa los días.
-     * Retorna un arreglo con las ganancias diarias acumuladas.
-     * Ejecuta todo en modo invisible, sin mostrar diálogos ni gráficos.
+     * Resuelve el problema y retorna las ganancias por día.
+     * Acepta tanto formato normal como con número de días al inicio.
      */
-    public int[] solve(int[][] days) {
-        List<List<int[]>> allDays = dividirPorDias(days);
-        dailyProfits = new int[allDays.size()];
-
-        SilkRoad silkRoad = null;
-
-        for (int i = 0; i < allDays.size(); i++) {
-            List<int[]> eventos = allDays.get(i);
-
-            if (i == 0) {
-                silkRoad = createSilentSilkRoad(toArray(eventos));
-                silkRoad.moveRobots();
-            } else {
-                silkRoad.reboot();
-                for (int[] e : eventos) {
-                    if (e[0] == 1) silkRoad.placeRobot(e[1]);
-                    else if (e[0] == 2 && e.length == 3) silkRoad.placeStore(e[1], e[2]);
-                }
-                silkRoad.moveRobots();
-            }
-
-            dailyProfits[i] = silkRoad.profit();
+    public static int[] solve(int[][] days) {
+        if (days == null || days.length == 0) {
+            return new int[0];
         }
 
-        return dailyProfits;
+        // Manejar caso con número de días al inicio
+        if (days[0].length == 1 && days[0][0] > 0) {
+            int numDays = days[0][0];
+            if (days.length == numDays + 1) {
+                int[][] trimmed = new int[numDays][];
+                for (int i = 0; i < numDays; i++) {
+                    trimmed[i] = days[i + 1];
+                }
+                days = trimmed;
+            } else {
+                System.out.println("Entrada inválida: número de días no coincide.");
+                return new int[0];
+            }
+        }
+
+        if (!validateInput(days)) {
+            System.out.println("Entrada inválida.");
+            return new int[0];
+        }
+
+        // Resolver con método standalone
+        int[] results = solveStandalone(days);
+
+        // Imprimir resultados
+        printResults(results);
+
+        return results;
     }
 
     /**
-     * Crea un SilkRoad en modo silencioso usando reflexión
+     * Pausa la ejecución por un tiempo en milisegundos.
      */
-    private SilkRoad createSilentSilkRoad(int[][] days) {
+    private static void pause(int milliseconds) {
         try {
-            Constructor<SilkRoad> constructor = SilkRoad.class.getDeclaredConstructor(int[][].class, boolean.class);
-            constructor.setAccessible(true);
-            return constructor.newInstance(days, true);
-        } catch (Exception e) {
-            throw new RuntimeException("Error creando SilkRoad en modo silencioso", e);
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
     /**
-     * Simula día a día paso a paso, mostrando mensajes si slow == true.
+     * Simula visualmente el problema usando la clase SilkRoad para visualización
+     * El cálculo real se hace con el algoritmo DP óptimo
      */
-    public void simulate(int[][] days, boolean slow) {
-        List<List<int[]>> allDays = dividirPorDias(days);
-        simulator = null;
+    public static void simulate(int[][] input, boolean slow) {
+        if (input == null || input.length < 1) {
+            System.out.println("Entrada inválida.");
+            return;
+        }
 
-        for (int day = 0; day < allDays.size(); day++) {
-            List<int[]> eventos = allDays.get(day);
+        int[][] days = input;
 
-            if (simulator == null) {
-                simulator = new SilkRoad(toArray(eventos));
-                simulator.moveRobots();
-                if (slow) javax.swing.JOptionPane.showMessageDialog(null, "🟢 Día " + (day + 1) + " iniciado (inicialización)");
-                if (slow) javax.swing.JOptionPane.showMessageDialog(null, "💰 Ganancia del día: " + simulator.profit());
-            } else {
-                simulator.reboot();
-                if (slow) javax.swing.JOptionPane.showMessageDialog(null, "🟢 Día " + (day + 1) + " iniciado");
-
-                for (int[] e : eventos) {
-                    if (e[0] == 1) {
-                        simulator.placeRobot(e[1]);
-                        if (slow) javax.swing.JOptionPane.showMessageDialog(null, "🤖 Robot colocado en " + e[1]);
-                    } else if (e[0] == 2 && e.length == 3) {
-                        simulator.placeStore(e[1], e[2]);
-                        if (slow) javax.swing.JOptionPane.showMessageDialog(null, "🏪 Tienda en " + e[1] + " con " + e[2] + " tenges");
-                    }
+        // Verificar si el primer elemento es el número de días
+        if (input[0].length == 1 && input[0][0] > 0) {
+            int numDays = input[0][0];
+            if (input.length == numDays + 1) {
+                days = new int[numDays][];
+                for (int i = 0; i < numDays; i++) {
+                    days[i] = input[i + 1];
                 }
-
-                simulator.moveRobots();
-                if (slow) javax.swing.JOptionPane.showMessageDialog(null, "💰 Ganancia del día: " + simulator.profit());
+            } else {
+                System.out.println("Entrada inválida: número de días no coincide.");
+                return;
             }
         }
 
-        if (slow) javax.swing.JOptionPane.showMessageDialog(null, "🏁 Fin de la simulación.");
+        if (!validateInput(days)) {
+            System.out.println("Entrada inválida después de procesar.");
+            return;
+        }
+
+        int n = days.length;
+        int maxLocation = 0;
+        for (int[] day : days) {
+            maxLocation = Math.max(maxLocation, day[1]);
+        }
+
+        System.out.println("=== SIMULACIÓN VISUAL DE SILK ROAD ===");
+        System.out.println("Iniciando simulación con " + n + " días...\n");
+
+        // Crear SilkRoad para visualización
+        SilkRoad silk = new SilkRoad(maxLocation + 10);
+        silk.setSilentMode(!slow);
+
+        // Mantener estado para cálculo DP
+        List<Integer> robotLocations = new ArrayList<>();
+        List<Integer> storeLocations = new ArrayList<>();
+        List<Integer> storeTenges = new ArrayList<>();
+        List<Integer> storeOriginalTenges = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            System.out.println("--- DÍA " + (i + 1) + " ---");
+
+            if (i > 0) {
+                silk.reboot(); // Resetea visualmente
+                // Reabastecer tiendas en nuestro estado interno
+                for (int j = 0; j < storeTenges.size(); j++) {
+                    storeTenges.set(j, storeOriginalTenges.get(j));
+                }
+                if (slow) pause(1000);
+            }
+
+            int[] event = days[i];
+            int t = event[0];
+            int x = event[1];
+
+            if (t == 1) {
+                System.out.println("  Evento: Agregar robot en posición " + x);
+                silk.placeRobot(x); // Visualización
+                
+                // Actualizar estado interno
+                if (!robotLocations.contains(x)) {
+                    robotLocations.add(x);
+                    Collections.sort(robotLocations);
+                }
+            } else if (t == 2 && event.length == 3) {
+                int c = event[2];
+                System.out.println("  Evento: Agregar tienda en posición " + x + " con " + c + " tenges");
+                silk.placeStore(x, c); // Visualización
+                
+                // Actualizar estado interno
+                if (!storeLocations.contains(x)) {
+                    storeLocations.add(x);
+                    storeTenges.add(c);
+                    storeOriginalTenges.add(c);
+                    sortStoresParallel(storeLocations, storeTenges, storeOriginalTenges);
+                }
+            }
+
+            if (slow) pause(1500);
+
+            System.out.println("  Calculando ruta óptima...");
+            
+            // Calcular ganancia óptima con DP (NO usar silk.moveRobots())
+            int optimalProfit = calculateOptimalProfit(robotLocations, storeLocations, storeTenges);
+            
+            if (slow) pause(2000);
+
+            System.out.println("  ✓ Ganancia del día: " + optimalProfit);
+            System.out.println();
+
+            if (slow) pause(1000);
+        }
+
+        System.out.println("=== FIN DE LA SIMULACIÓN ===");
     }
 
     /**
-     * Divide el arreglo de eventos en lista de días usando {0} como separador.
+     * Método alternativo sin usar SilkRoad (sin interfaz gráfica)
+     * Usa programación dinámica para permitir rutas multi-tienda óptimas
      */
-    private List<List<int[]>> dividirPorDias(int[][] days) {
-        List<List<int[]>> allDays = new ArrayList<>();
-        List<int[]> currentDay = new ArrayList<>();
+    private static int[] solveStandalone(int[][] days) {
+        int n = days.length;
+        List<Integer> robotLocations = new ArrayList<>();
+        
+        // Tres listas paralelas para representar las tiendas
+        List<Integer> storeLocations = new ArrayList<>();
+        List<Integer> storeTenges = new ArrayList<>();
+        List<Integer> storeOriginalTenges = new ArrayList<>();
+        
+        int[] profits = new int[n];
 
-        for (int[] d : days) {
-            if (d.length == 1 && d[0] == 0) {
-                if (!currentDay.isEmpty()) {
-                    allDays.add(new ArrayList<>(currentDay));
-                    currentDay.clear();
+        for (int day = 0; day < n; day++) {
+            // Reabastecer tiendas al inicio de cada día (excepto día 0)
+            if (day > 0) {
+                for (int i = 0; i < storeTenges.size(); i++) {
+                    storeTenges.set(i, storeOriginalTenges.get(i));
                 }
-            } else {
-                currentDay.add(d);
+            }
+
+            int[] event = days[day];
+            int t = event[0];
+            int x = event[1];
+
+            if (t == 1) {
+                // Agregar robot si no existe en esa posición
+                if (!robotLocations.contains(x)) {
+                    robotLocations.add(x);
+                    Collections.sort(robotLocations);
+                }
+            } else if (t == 2 && event.length == 3) {
+                int c = event[2];
+                // Agregar tienda si no existe en esa posición
+                if (!storeLocations.contains(x)) {
+                    storeLocations.add(x);
+                    storeTenges.add(c);
+                    storeOriginalTenges.add(c);
+                    
+                    // Mantener las tres listas ordenadas por locación
+                    sortStoresParallel(storeLocations, storeTenges, storeOriginalTenges);
+                }
+            }
+
+            profits[day] = calculateOptimalProfit(robotLocations, storeLocations, storeTenges);
+        }
+
+        return profits;
+    }
+
+    /**
+     * Ordena tres listas paralelas basándose en la primera lista (locaciones)
+     */
+    private static void sortStoresParallel(List<Integer> locations, List<Integer> tenges, List<Integer> originalTenges) {
+        int n = locations.size();
+        Integer[] indices = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
+        }
+        
+        Arrays.sort(indices, Comparator.comparingInt(locations::get));
+        
+        List<Integer> sortedLoc = new ArrayList<>();
+        List<Integer> sortedTen = new ArrayList<>();
+        List<Integer> sortedOrig = new ArrayList<>();
+        
+        for (int idx : indices) {
+            sortedLoc.add(locations.get(idx));
+            sortedTen.add(tenges.get(idx));
+            sortedOrig.add(originalTenges.get(idx));
+        }
+        
+        locations.clear();
+        tenges.clear();
+        originalTenges.clear();
+        
+        locations.addAll(sortedLoc);
+        tenges.addAll(sortedTen);
+        originalTenges.addAll(sortedOrig);
+    }
+
+    /**
+     * Calcula la ganancia máxima permitiendo que cada robot visite varias tiendas
+     * (la ruta óptima de cada robot es un solo intervalo contiguo de tiendas).
+     * DP en O(R * S^2) adecuado para casos pequeños/medianos de pruebas.
+     */
+    private static int calculateOptimalProfit(List<Integer> robots, List<Integer> storeLocations, List<Integer> storeTenges) {
+        int R = robots.size();
+        int S = storeLocations.size();
+        if (R == 0 || S == 0) return 0;
+
+        // Ordenar robots por posición
+        List<Integer> r = new ArrayList<>(robots);
+        Collections.sort(r);
+
+        // Arrays de posiciones y valores
+        int[] x = new int[S + 1];
+        int[] c = new int[S + 1];
+        long[] pref = new long[S + 1]; // suma de valores para rangos
+
+        for (int i = 1; i <= S; i++) {
+            x[i] = storeLocations.get(i - 1);
+            c[i] = storeTenges.get(i - 1);
+            pref[i] = pref[i - 1] + c[i];
+        }
+
+        // dp[rIdx][j] = mejor ganancia usando robots[0..rIdx] y tiendas[1..j]
+        long[][] dp = new long[R + 1][S + 1];
+        for (int rIdx = 0; rIdx <= R; rIdx++) Arrays.fill(dp[rIdx], 0L);
+
+        for (int rIdx = 1; rIdx <= R; rIdx++) {
+            int rr = r.get(rIdx - 1);
+
+            for (int j = 1; j <= S; j++) {
+                // Opción 1: no usar la tienda j
+                long best = dp[rIdx][j - 1];
+
+                // Opción 2: asignar al robot rIdx un intervalo [i..j]
+                long bestInterval = Long.MIN_VALUE;
+                // iteramos i hacia atrás; O(S) por j -> O(S^2) por robot
+                for (int i = j; i >= 1; i--) {
+                    long sum = pref[j] - pref[i - 1]; // recompensa de i..j
+                    int span = x[j] - x[i];
+                    int attach = Math.min(Math.abs(rr - x[i]), Math.abs(rr - x[j]));
+                    long gain = sum - (span + attach);
+                    // si el intervalo no aporta, igual podría convenir empalmar con dp anterior
+                    long candidate = dp[rIdx - 1][i - 1] + Math.max(0L, gain);
+                    if (candidate > bestInterval) bestInterval = candidate;
+                }
+
+                if (bestInterval > best) best = bestInterval;
+                dp[rIdx][j] = best;
             }
         }
 
-        if (!currentDay.isEmpty()) {
-            allDays.add(currentDay);
+        long ans = dp[R][S];
+        // El resultado es entero por entradas enteras, acotar a int de forma segura
+        if (ans < Integer.MIN_VALUE) return Integer.MIN_VALUE;
+        if (ans > Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) ans;
+    }
+
+    private static boolean validateInput(int[][] days) {
+        if (days == null) return false;
+
+        Set<Integer> usedLocations = new HashSet<>();
+
+        for (int[] event : days) {
+            if (event == null || event.length < 2) return false;
+
+            int t = event[0];
+            int x = event[1];
+
+            if (t != 1 && t != 2) return false;
+            if (x < 0 || x > 100_000_000) return false;
+
+            if (usedLocations.contains(x)) return false;
+            usedLocations.add(x);
+
+            if (t == 2) {
+                if (event.length < 3) return false;
+                int c = event[2];
+                if (c < 0 || c > 100_000_000) return false;
+            }
         }
 
-        return allDays;
+        return true;
     }
 
     /**
-     * Convierte lista de arrays a array bidimensional.
+     * Imprime los resultados en la consola
      */
-    private int[][] toArray(List<int[]> list) {
-        return list.toArray(new int[0][0]);
+    private static void printResults(int[] profits) {
+        for (int profit : profits) {
+            System.out.println(profit);
+        }
     }
 }

@@ -40,7 +40,7 @@ public class Store {
         this.visible = false;
         this.color = COLORS.get(colorIndex % COLORS.size());
         colorIndex++;
-        JOptionPane.showMessageDialog(null, "🏪 Store created at " + location + " with " + tenges + " tenges.");
+        JOptionPane.showMessageDialog(null, "🏪 Tienda creada en " + location + " con " + tenges + " tenges.");
     }
 
     /** Returns the current location of the store. */
@@ -48,6 +48,9 @@ public class Store {
 
     /** Returns the number of tenges stored in the store. */
     public int getTenges() { return tenges; }
+    
+    /** Returns the original/initial number of tenges (before any emptying). */
+    public int getOriginalTenges() { return initialTenges; }
     
     /** Returns the total profit given by this store (times emptied × initial value). */
     public int getTotalGiven() {
@@ -61,7 +64,7 @@ public class Store {
             makeInvisible();
             makeVisible();
         }
-        JOptionPane.showMessageDialog(null, "🔄 Store at " + location + " restocked with " + initialTenges + " tenges.");
+        JOptionPane.showMessageDialog(null, "🔄 Tienda en " + location + " rebastecida con " + initialTenges + " tenges.");
     }
 
     /** Empties the store, leaving the tenges at 0. */
@@ -72,7 +75,7 @@ public class Store {
             makeInvisible();
             makeVisible();
         }
-        JOptionPane.showMessageDialog(null, "⚠ Store at " + location + " emptied. Total times emptied: " + emptiedCount);
+        JOptionPane.showMessageDialog(null, "⚠ Tienda en " + location + " Vaciado. Total de veces vaciado: " + emptiedCount);
     }
 
     /** Returns the number of times the store has been emptied. */

@@ -4,26 +4,11 @@ public class SilkRoadContest {
     
     /**
      * Resuelve el problema y retorna las ganancias por día.
-     * Acepta tanto formato normal como con número de días al inicio.
+     * Formato de entrada: {{tipo, ubicación, [tenges]}, ...}
      */
     public static int[] solve(int[][] days) {
         if (days == null || days.length == 0) {
             return new int[0];
-        }
-
-        // Manejar caso con número de días al inicio
-        if (days[0].length == 1 && days[0][0] > 0) {
-            int numDays = days[0][0];
-            if (days.length == numDays + 1) {
-                int[][] trimmed = new int[numDays][];
-                for (int i = 0; i < numDays; i++) {
-                    trimmed[i] = days[i + 1];
-                }
-                days = trimmed;
-            } else {
-                System.out.println("Entrada inválida: número de días no coincide.");
-                return new int[0];
-            }
         }
 
         if (!validateInput(days)) {
@@ -52,29 +37,12 @@ public class SilkRoadContest {
     }
 
     /**
-     * Simula visualmente el problema usando la clase SilkRoad para visualización
-     * El cálculo real se hace con el algoritmo DP óptimo
+     * Simula visualmente el problema usando la clase SilkRoad 
      */
-    public static void simulate(int[][] input, boolean slow) {
-        if (input == null || input.length < 1) {
+    public static void simulate(int[][] days, boolean slow) {
+        if (days == null || days.length == 0) {
             System.out.println("Entrada inválida.");
             return;
-        }
-
-        int[][] days = input;
-
-        // Verificar si el primer elemento es el número de días
-        if (input[0].length == 1 && input[0][0] > 0) {
-            int numDays = input[0][0];
-            if (input.length == numDays + 1) {
-                days = new int[numDays][];
-                for (int i = 0; i < numDays; i++) {
-                    days[i] = input[i + 1];
-                }
-            } else {
-                System.out.println("Entrada inválida: número de días no coincide.");
-                return;
-            }
         }
 
         if (!validateInput(days)) {
@@ -95,60 +63,41 @@ public class SilkRoadContest {
         SilkRoad silk = new SilkRoad(maxLocation + 10);
         silk.setSilentMode(!slow);
 
-        // Mantener estado para cálculo DP
-        List<Integer> robotLocations = new ArrayList<>();
-        List<Integer> storeLocations = new ArrayList<>();
-        List<Integer> storeTenges = new ArrayList<>();
-        List<Integer> storeOriginalTenges = new ArrayList<>();
+        // Procesar cada evento como un día independiente
+        for (int dayIdx = 0; dayIdx < n; dayIdx++) {
+            System.out.println("--- DÍA " + (dayIdx + 1) + " ---");
 
-        for (int i = 0; i < n; i++) {
-            System.out.println("--- DÍA " + (i + 1) + " ---");
-
-            if (i > 0) {
-                silk.reboot(); // Resetea visualmente
-                // Reabastecer tiendas en nuestro estado interno
-                for (int j = 0; j < storeTenges.size(); j++) {
-                    storeTenges.set(j, storeOriginalTenges.get(j));
-                }
+            if (dayIdx > 0) {
+                silk.reboot(); // Resetea y reabastecer tiendas
                 if (slow) pause(1000);
             }
 
-            int[] event = days[i];
+            int[] event = days[dayIdx];
             int t = event[0];
             int x = event[1];
 
             if (t == 1) {
                 System.out.println("  Evento: Agregar robot en posición " + x);
-                silk.placeRobot(x); // Visualización
-                
-                // Actualizar estado interno
-                if (!robotLocations.contains(x)) {
-                    robotLocations.add(x);
-                    Collections.sort(robotLocations);
-                }
+                silk.placeRobot(x);
+                if (slow) pause(500);
             } else if (t == 2 && event.length == 3) {
                 int c = event[2];
                 System.out.println("  Evento: Agregar tienda en posición " + x + " con " + c + " tenges");
-                silk.placeStore(x, c); // Visualización
-                
-                // Actualizar estado interno
-                if (!storeLocations.contains(x)) {
-                    storeLocations.add(x);
-                    storeTenges.add(c);
-                    storeOriginalTenges.add(c);
-                    sortStoresParallel(storeLocations, storeTenges, storeOriginalTenges);
-                }
+                silk.placeStore(x, c);
+                if (slow) pause(500);
             }
 
             if (slow) pause(1500);
 
-            System.out.println("  Calculando ruta óptima...");
+            System.out.println("  Calculando ruta óptima y moviendo robots...");
             
-            // Calcular ganancia óptima con DP (NO usar silk.moveRobots())
-            int optimalProfit = calculateOptimalProfit(robotLocations, storeLocations, storeTenges);
+            // Mover robots visualmente
+            silk.moveRobots();
             
             if (slow) pause(2000);
 
+            // Calcular ganancia óptima usando el método profit() mejorado de SilkRoad
+            int optimalProfit = silk.profit();
             System.out.println("  ✓ Ganancia del día: " + optimalProfit);
             System.out.println();
 
@@ -156,6 +105,7 @@ public class SilkRoadContest {
         }
 
         System.out.println("=== FIN DE LA SIMULACIÓN ===");
+        if (slow) pause(2000);
     }
 
     /**
@@ -316,6 +266,7 @@ public class SilkRoadContest {
             if (t != 1 && t != 2) return false;
             if (x < 0 || x > 100_000_000) return false;
 
+            // Validar que no haya posiciones repetidas
             if (usedLocations.contains(x)) return false;
             usedLocations.add(x);
 

@@ -146,41 +146,115 @@ public class SilkRoad {
 
     /**
      * Mueve todos los robots buscando maximizar la ganancia neta.
-     * Usa un algoritmo greedy simple para visualización.
+     * Usa el mismo algoritmo DP que profit() para calcular rutas óptimas multi-tienda.
      */
     public void moveRobots() {
-        Set<Store> disponibles = new HashSet<>();
-        for (Store s : stores) {
-            int tenges = s.getTenges();
-            if (tenges > 0) {
-                disponibles.add(s);
+        int R = robots.size();
+        int S = stores.size();
+        if (R == 0 || S == 0) {
+            ok = true;
+            return;
+        }
+
+        // Obtener ubicaciones de robots ordenadas
+        List<Integer> robotLocs = new ArrayList<>();
+        List<Robot> sortedRobots = new ArrayList<>();
+        for (Robot r : robots) {
+            robotLocs.add(r.getInitialLocation());
+            sortedRobots.add(r);
+        }
+        sortedRobots.sort(Comparator.comparingInt(Robot::getInitialLocation));
+
+        // Obtener tiendas ordenadas por ubicación
+        List<Store> sortedStores = new ArrayList<>(stores);
+        sortedStores.sort(Comparator.comparingInt(Store::getLocation));
+
+        // Arrays de posiciones y valores
+        int[] x = new int[S + 1];
+        int[] c = new int[S + 1];
+        long[] pref = new long[S + 1];
+
+        for (int i = 1; i <= S; i++) {
+            x[i] = sortedStores.get(i - 1).getLocation();
+            c[i] = sortedStores.get(i - 1).getOriginalTenges();
+            pref[i] = pref[i - 1] + c[i];
+        }
+
+        // dp[rIdx][j] = mejor ganancia usando robots[0..rIdx] y tiendas[1..j]
+        long[][] dp = new long[R + 1][S + 1];
+        int[][] choice = new int[R + 1][S + 1]; // Para reconstruir la solución
+
+        for (int rIdx = 0; rIdx <= R; rIdx++) Arrays.fill(dp[rIdx], 0L);
+        for (int rIdx = 0; rIdx <= R; rIdx++) Arrays.fill(choice[rIdx], -1);
+
+        for (int rIdx = 1; rIdx <= R; rIdx++) {
+            int rr = robotLocs.get(rIdx - 1);
+
+            for (int j = 1; j <= S; j++) {
+                // Opción 1: no usar la tienda j
+                long best = dp[rIdx][j - 1];
+                choice[rIdx][j] = -1; // No usar tienda j
+
+                // Opción 2: asignar al robot rIdx un intervalo [i..j]
+                for (int i = j; i >= 1; i--) {
+                    long sum = pref[j] - pref[i - 1];
+                    int span = x[j] - x[i];
+                    int attach = Math.min(Math.abs(rr - x[i]), Math.abs(rr - x[j]));
+                    long gain = sum - (span + attach);
+                    long candidate = dp[rIdx - 1][i - 1] + Math.max(0L, gain);
+                    
+                    if (candidate > best) {
+                        best = candidate;
+                        choice[rIdx][j] = i; // Robot rIdx toma intervalo [i..j]
+                    }
+                }
+
+                dp[rIdx][j] = best;
             }
         }
 
-        while (true) {
-            Robot bestR = null; 
-            Store bestS = null; 
-            int bestGain = 0;
+        // Reconstruir la solución y mover robots visualmente
+        List<RobotAssignment> assignments = new ArrayList<>();
+        int currentJ = S;
+        
+        for (int rIdx = R; rIdx >= 1; rIdx--) {
+            while (currentJ > 0 && choice[rIdx][currentJ] == -1) {
+                currentJ--;
+            }
             
-            for (Robot r : robots) {
-                for (Store s : disponibles) {
-                    int gain = s.getTenges() - Math.abs(r.getLocation() - s.getLocation());
-                    if (gain > bestGain) {
-                        bestGain = gain; 
-                        bestR = r; 
-                        bestS = s;
+            if (currentJ > 0 && choice[rIdx][currentJ] > 0) {
+                int startStore = choice[rIdx][currentJ];
+                int endStore = currentJ;
+                assignments.add(new RobotAssignment(rIdx - 1, startStore - 1, endStore - 1));
+                currentJ = startStore - 1;
+            }
+        }
+
+        // Invertir para procesar en orden correcto
+        Collections.reverse(assignments);
+
+        // Ejecutar los movimientos visualmente
+        for (RobotAssignment assign : assignments) {
+            Robot robot = sortedRobots.get(assign.robotIdx);
+            
+            // Mover el robot por cada tienda en el intervalo
+            for (int storeIdx = assign.startStoreIdx; storeIdx <= assign.endStoreIdx; storeIdx++) {
+                Store store = sortedStores.get(storeIdx);
+                int storeLocation = store.getLocation();
+                int tenges = store.getTenges();
+                
+                if (tenges > 0) {
+                    robot.moveToStore(storeLocation, tenges);
+                    showMessage("🤖 Robot movido a tienda en " + storeLocation);
+                    store.empty();
+                    
+                    try {
+                        Thread.sleep(300); // Pausa para visualización
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
-            if (bestGain == 0) {
-                break;
-            }
-
-            bestR.moveToStore(bestS.getLocation(), bestS.getTenges());
-            showMessage("🤖 Robot movido a tienda en " + bestS.getLocation() +
-                    " con ganancia " + bestGain);
-            bestS.empty();
-            disponibles.remove(bestS);
         }
 
         robots.stream().max(Comparator.comparingInt(Robot::getTotalProfit))
@@ -188,6 +262,21 @@ public class SilkRoad {
 
         progressBar.update();
         ok = true;
+    }
+
+    /**
+     * Clase auxiliar para almacenar asignaciones de robot a tiendas
+     */
+    private static class RobotAssignment {
+        int robotIdx;
+        int startStoreIdx;
+        int endStoreIdx;
+
+        RobotAssignment(int robotIdx, int startStoreIdx, int endStoreIdx) {
+            this.robotIdx = robotIdx;
+            this.startStoreIdx = startStoreIdx;
+            this.endStoreIdx = endStoreIdx;
+        }
     }
 
     /**
@@ -313,10 +402,68 @@ public class SilkRoad {
     }
 
     /**
-     * Calcula la ganancia total de todos los robots.
+     * Calcula la ganancia total óptima usando programación dinámica.
+     * Permite que cada robot visite múltiples tiendas en una ruta óptima.
      */
     public int profit() {
-        return robots.stream().mapToInt(Robot::getTotalProfit).sum();
+        int R = robots.size();
+        int S = stores.size();
+        if (R == 0 || S == 0) return 0;
+
+        // Obtener ubicaciones de robots ordenadas
+        List<Integer> robotLocs = new ArrayList<>();
+        for (Robot r : robots) {
+            robotLocs.add(r.getInitialLocation());
+        }
+        Collections.sort(robotLocs);
+
+        // Obtener tiendas ordenadas por ubicación
+        List<Store> sortedStores = new ArrayList<>(stores);
+        sortedStores.sort(Comparator.comparingInt(Store::getLocation));
+
+        // Arrays de posiciones y valores
+        int[] x = new int[S + 1];
+        int[] c = new int[S + 1];
+        long[] pref = new long[S + 1]; // suma de valores para rangos
+
+        for (int i = 1; i <= S; i++) {
+            x[i] = sortedStores.get(i - 1).getLocation();
+            c[i] = sortedStores.get(i - 1).getOriginalTenges();
+            pref[i] = pref[i - 1] + c[i];
+        }
+
+        // dp[rIdx][j] = mejor ganancia usando robots[0..rIdx] y tiendas[1..j]
+        long[][] dp = new long[R + 1][S + 1];
+        for (int rIdx = 0; rIdx <= R; rIdx++) Arrays.fill(dp[rIdx], 0L);
+
+        for (int rIdx = 1; rIdx <= R; rIdx++) {
+            int rr = robotLocs.get(rIdx - 1);
+
+            for (int j = 1; j <= S; j++) {
+                // Opción 1: no usar la tienda j
+                long best = dp[rIdx][j - 1];
+
+                // Opción 2: asignar al robot rIdx un intervalo [i..j]
+                long bestInterval = Long.MIN_VALUE;
+                for (int i = j; i >= 1; i--) {
+                    long sum = pref[j] - pref[i - 1]; // recompensa de i..j
+                    int span = x[j] - x[i];
+                    int attach = Math.min(Math.abs(rr - x[i]), Math.abs(rr - x[j]));
+                    long gain = sum - (span + attach);
+                    long candidate = dp[rIdx - 1][i - 1] + Math.max(0L, gain);
+                    if (candidate > bestInterval) bestInterval = candidate;
+                }
+
+                if (bestInterval > best) best = bestInterval;
+                dp[rIdx][j] = best;
+            }
+        }
+
+        long ans = dp[R][S];
+        // El resultado es entero por entradas enteras, acotar a int de forma segura
+        if (ans < Integer.MIN_VALUE) return Integer.MIN_VALUE;
+        if (ans > Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) ans;
     }
 
     /**
